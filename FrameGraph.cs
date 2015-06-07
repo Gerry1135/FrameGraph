@@ -137,7 +137,7 @@ namespace FrameGraph
         {
             int timeY = (int)(frameHistory[x].time * timeScale);
             int countY = (int)(frameHistory[x].gc * countScale);
-            print("" + timeY);
+            //print("" + timeY);
             for (int y = 0; y < graphTexture.height; y++)
             {
                 if (y <= countY)
