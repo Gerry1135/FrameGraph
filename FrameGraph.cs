@@ -20,23 +20,30 @@ namespace FrameGraph
         int frameIndex = 0;
         int lastRendered = 0;
 
-        long lastTime = -1;
+        long lastTime;
         long lastCount;
+
+        long maxFrameTime = 0;
+        const String maxFSPattern = "Max: {0}ms";
+        String maxFrameTimeStr;
+
+        long minFrameTime = 1000000000;
+        const String minFSPattern = "Min: {0}ms";
+        String minFrameTimeStr;
+
+        long ticksPerMilliSec;
 
         bool fullUpdate = true;
 
         double timeScale;
         double countScale;
 
-        Color[] blackSquare;
         Color[] blackLine;
         Color[] line;
 
         private GUIStyle labelStyle;
-        private GUILayoutOption noExpandWidth;
         private GUILayoutOption wndWidth;
         private GUILayoutOption wndHeight;
-        private GUILayoutOption boxHeight;
 
         Color color = new Color();
 
@@ -62,6 +69,7 @@ namespace FrameGraph
             }
 
             lastTime = Stopwatch.GetTimestamp();
+            ticksPerMilliSec = Stopwatch.Frequency / 1000;
             lastCount = GC.CollectionCount(GC.MaxGeneration);
         }
         
@@ -73,7 +81,18 @@ namespace FrameGraph
         {
             // First thing is to record the time and the GCCount delta for this frame
             long time = Stopwatch.GetTimestamp();
-            frameHistory[frameIndex].time = time - lastTime;
+            long timedelta = time - lastTime;
+            frameHistory[frameIndex].time = timedelta;
+            if (timedelta > maxFrameTime)
+            {
+                maxFrameTime = timedelta;
+                maxFrameTimeStr = String.Format(maxFSPattern, (maxFrameTime / ticksPerMilliSec));
+            }
+            if (timedelta < minFrameTime)
+            {
+                minFrameTime = timedelta;
+                minFrameTimeStr = String.Format(minFSPattern, (minFrameTime / ticksPerMilliSec));
+            }
             lastTime = time;
             int count = GC.CollectionCount(GC.MaxGeneration);
             frameHistory[frameIndex].gc = count - lastCount;
@@ -171,7 +190,24 @@ namespace FrameGraph
 
         public void WindowGUI(int windowID)
         {
+            GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
             GUILayout.Box(graphTexture, wndWidth, wndHeight);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(minFrameTimeStr, labelStyle);
+            GUILayout.Label(maxFrameTimeStr, labelStyle);
+            if (GUILayout.Button("Reset"))
+            {
+                maxFrameTime = 0;
+                maxFrameTimeStr = String.Format(maxFSPattern, (maxFrameTime / ticksPerMilliSec));
+                minFrameTime = 1000000000;
+                minFrameTimeStr = String.Format(minFSPattern, (minFrameTime / ticksPerMilliSec));
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndVertical();
 
             GUI.DragWindow();
         }
