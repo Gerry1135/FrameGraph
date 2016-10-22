@@ -13,7 +13,7 @@ namespace FrameGraph
 
         private Rect windowPos = new Rect(80, 80, 400, 200);
         private bool showUI = false;
-        readonly Texture2D graphTexture = new Texture2D(width, height);
+        readonly Texture2D graphTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
 
         private frameState[] frameHistory = new frameState[width];
 
@@ -33,6 +33,10 @@ namespace FrameGraph
 
         long ticksPerMilliSec;
 
+        const String avgFpsPattern = "Fps: {0}";
+        String avgFpsStr;
+        long lastAvgFpsx10 = 0;
+
         bool fullUpdate = true;
 
         double timeScale;
@@ -42,7 +46,8 @@ namespace FrameGraph
         Color[] line;
 
         private GUIStyle labelStyle;
-        private GUILayoutOption wndWidth;
+		private GUIStyle graphStyle;
+		private GUILayoutOption wndWidth;
         private GUILayoutOption wndHeight;
 
         Color color = new Color();
@@ -97,6 +102,24 @@ namespace FrameGraph
             int count = GC.CollectionCount(GC.MaxGeneration);
             frameHistory[frameIndex].gc = count - lastCount;
             lastCount = count;
+
+            if (frameIndex % 8 == 0)
+            {
+                long totalTicks = 0;
+                int f = frameIndex;
+                for (int i = 16; i > 0; i--)
+                {
+                    totalTicks += frameHistory[f].time;
+                    f = (f == 0) ? width - 1 : f - 1;
+                }
+                long avgFpsx10 = 160000 / (totalTicks / ticksPerMilliSec);
+                if (avgFpsx10 != lastAvgFpsx10)
+                {
+                    lastAvgFpsx10 = avgFpsx10;
+                    avgFpsStr = String.Format(avgFpsPattern, ((double)lastAvgFpsx10 / 10d));
+                }
+            }
+
             frameIndex = (frameIndex + 1) % width;
 
             if (GameSettings.MODIFIER_KEY.GetKey() && Input.GetKeyDown(KeyCode.Equals))
@@ -108,7 +131,7 @@ namespace FrameGraph
                 return;
 
             // Work out if the scale needs to change
-            timeScale = (double)height * 4 / (double)Stopwatch.Frequency;
+            timeScale = (double)height * 2 / (double)Stopwatch.Frequency;
             countScale = 16;
 
             // fullUpdate = true;
@@ -176,7 +199,8 @@ namespace FrameGraph
         {
             if (labelStyle == null)
                 labelStyle = new GUIStyle(GUI.skin.label);
-
+			if (graphStyle == null)
+				graphStyle = new GUIStyle();
             if (wndWidth == null)
                 wndWidth = GUILayout.Width(width);
             if (wndHeight == null)
@@ -184,7 +208,7 @@ namespace FrameGraph
 
             if (showUI)
             {
-                windowPos = GUILayout.Window(5421235, windowPos, WindowGUI, "FrameGraph", wndWidth, wndHeight);
+                windowPos = GUILayout.Window(5421235, windowPos, WindowGUI, "FrameGraph 1.0.0.3", wndWidth, wndHeight);
             }
         }
 
@@ -192,12 +216,13 @@ namespace FrameGraph
         {
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            GUILayout.Box(graphTexture, wndWidth, wndHeight);
+			GUILayout.Box(graphTexture, graphStyle, wndWidth, wndHeight);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(minFrameTimeStr, labelStyle);
             GUILayout.Label(maxFrameTimeStr, labelStyle);
+            GUILayout.Label(avgFpsStr, labelStyle);
             if (GUILayout.Button("Reset"))
             {
                 maxFrameTime = 0;
