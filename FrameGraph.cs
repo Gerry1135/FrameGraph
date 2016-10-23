@@ -150,7 +150,7 @@ namespace FrameGraph
 
             frameIndex = (frameIndex + 1) % width;
 
-            if (GameSettings.MODIFIER_KEY.GetKey() && Input.GetKeyDown(KeyCode.Equals))
+            if (GameSettings.MODIFIER_KEY.GetKey() && Input.GetKeyDown(KeyCode.Y))
             {
                 showUI = !showUI;
             }
@@ -236,7 +236,7 @@ namespace FrameGraph
 
             if (showUI)
             {
-                windowPos = GUILayout.Window(5421235, windowPos, WindowGUI, "FrameGraph 1.0.0.3", wndWidth, wndHeight);
+                windowPos = GUILayout.Window(5421235, windowPos, WindowGUI, "FrameGraph 1.0.0.4", wndWidth, wndHeight);
             }
         }
 
