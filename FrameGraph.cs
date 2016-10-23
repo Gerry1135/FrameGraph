@@ -54,7 +54,9 @@ namespace FrameGraph
         String minFrameTimeStr;
 
         long ticksPerMilliSec;
+        long ticksPerSec;
 
+        long lastFpsTime;
         const String avgFpsPattern = "Fps: {0}";
         String avgFpsStr;
         long lastAvgFpsx10 = 0;
@@ -96,7 +98,8 @@ namespace FrameGraph
             }
 
             lastTime = Stopwatch.GetTimestamp();
-            ticksPerMilliSec = Stopwatch.Frequency / 1000;
+            ticksPerSec = Stopwatch.Frequency;
+            ticksPerMilliSec = ticksPerSec / 1000;
             lastCount = GC.CollectionCount(GC.MaxGeneration);
         }
         
@@ -125,21 +128,24 @@ namespace FrameGraph
             frameHistory[frameIndex].gc = count - lastCount;
             lastCount = count;
 
-            if (frameIndex % 8 == 0)
+            if ((time - lastFpsTime) > ticksPerSec)
             {
                 long totalTicks = 0;
+                long numFrames = 0;
                 int f = frameIndex;
-                for (int i = 16; i > 0; i--)
+                while (numFrames < width && totalTicks < (5 * ticksPerSec))
                 {
                     totalTicks += frameHistory[f].time;
                     f = (f == 0) ? width - 1 : f - 1;
+                    numFrames++;
                 }
-                long avgFpsx10 = 160000 / (totalTicks / ticksPerMilliSec);
+                long avgFpsx10 = (numFrames * 10000 * ticksPerMilliSec) / totalTicks;
                 if (avgFpsx10 != lastAvgFpsx10)
                 {
                     lastAvgFpsx10 = avgFpsx10;
                     avgFpsStr = String.Format(avgFpsPattern, ((double)lastAvgFpsx10 / 10d));
                 }
+                lastFpsTime = time;
             }
 
             frameIndex = (frameIndex + 1) % width;
